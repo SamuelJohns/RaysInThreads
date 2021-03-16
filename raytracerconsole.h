@@ -1,12 +1,9 @@
-#ifndef RAYTRACER_H
-#define RAYTRACER_H
-
-#include <QObject>
-#include <QVector>
-#include <QPoint>
-#include <QString>
+#ifndef RAYTRACERCONSOLE_H
+#define RAYTRACERCONSOLE_H
 #include <atomic>
 #include <mutex>
+#include <vector>
+#include <chrono>
 
 #include "camera.h"
 #include "hitable.h"
@@ -18,24 +15,23 @@ static const double APERTURE = 0.1;
 static const vec3 LOOK_FROM(13.0, 2.0, 6.0);
 static const vec3 LOOK_AT(0.0, 1.0, -0.5);
 
-class RayTracer : public QObject
-{
-    Q_OBJECT
-public:
-    explicit RayTracer(QObject *parent = nullptr);
 
+class RayTracerConsole
+{
+public:
+    RayTracerConsole();
     void run(int threads = 1);
-signals:
-    void done();
-    void updateProgress(int index);
 private:
     int amountOfPixels;
     int amountOfThreads;
-    int index;
-    std::mutex m;
+    std::atomic<int> index;
     std::atomic<int> finishedThreads;
-    QVector<QString> rgbLines;
-    QVector<QPoint> pixels;
+    std::vector<int> rLines;
+    std::vector<int> gLines;
+    std::vector<int> bLines;
+    std::vector<int> pixelX;
+    std::vector<int> pixelY;
+    std::chrono::time_point<std::chrono::system_clock> startTime, endTime, lastTime;
     camera* cam;
     hitable *world;
 
@@ -46,4 +42,4 @@ private:
     void saveFile();
 };
 
-#endif // RAYTRACER_H
+#endif // RAYTRACERCONSOLE_H

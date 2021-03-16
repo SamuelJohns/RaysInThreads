@@ -9,6 +9,7 @@ class sphere : public hitable
         vec3 center;
 
         sphere() {}
+        sphere(const sphere& s): mat_ptr(s.mat_ptr), radius(s.radius), center(s.center) {}
         sphere(vec3  cen, double r, material* m):mat_ptr(m), radius(r), center(cen) {}
         virtual ~sphere(){}
         virtual bool hit(const ray& r, double tmin,  double tmax, hit_record& rec) const;

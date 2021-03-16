@@ -1,8 +1,6 @@
 #pragma once
 #include <math.h>
 #include  "ray.h"
-#include <QObject>
-#include <QDebug>
 
 static int AMOUNT = 0;
 
@@ -23,11 +21,10 @@ inline vec3 random_inunit_disk()
     return p;
 }
 
-class camera : public QObject
+class camera
 {
-    Q_OBJECT
     public:
-        explicit camera(QObject *parent = nullptr);
+        explicit camera();
 
         double lens_radius;
         vec3 origin;

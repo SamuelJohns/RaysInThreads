@@ -1,8 +1,6 @@
-#include "raytracer.h"
+#include "raytracerconsole.h"
 #include <iostream>
 #include <fstream>
-#include <QDebug>
-#include <QString>
 #include <thread>
 
 #include "float.h"
@@ -13,13 +11,6 @@
 #include "material.h"
 #include "hitable_list.h"
 #include "camera.h"
-
-
-
-RayTracer::RayTracer(QObject *parent) : QObject(parent)
-{
-
-}
 
 vec3& rotateOnAngle(vec3& v, vec3& center, double angle)
 {
@@ -92,9 +83,9 @@ hitable* dna()
         list[i] = &spheres[i];
     }
 
-    spheres[0] = sphere(vec3(0.0, -1001.0, 0.0), 1000.0, new lambertian(vec3(0.5, 0.5, 0.5)));
+    //spheres[0] = sphere(vec3(0.0, -1001.0, 0.0), 1000.0, new lambertian(vec3(0.5, 0.5, 0.5)));
 
-    int i = 1;
+    int i = 0;
 
     vec3 left {-5.0, 1.0, -1.4};
     vec3 right  {-5.0, 1.0, 1.4};
@@ -147,46 +138,56 @@ vec3 color(const ray &r, hitable  *world,  int depth)
         return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
     }
 }
-
-void RayTracer::run(int threads)
+RayTracerConsole::RayTracerConsole()
 {
+
+}
+
+void RayTracerConsole::run(int threads)
+{
+    startTime = std::chrono::system_clock::now();
+    lastTime = startTime;
+
     finishedThreads.store(1, std::memory_order_release);
     amountOfThreads = threads;
     world = dna();
-    index = 0;
+    index.store(0);
 
     double dist_to_focus = ( LOOK_FROM - LOOK_AT).length();
     cam =  new camera(LOOK_FROM, LOOK_AT, vec3(0.0, 1.0, 0.0), 20.0, double(nx) / double(ny), APERTURE, dist_to_focus);
 
-    rgbLines.resize(nx * ny);
-    unsigned int pixelI = 0;
+    rLines.resize(nx * ny);
+    gLines.resize(nx * ny);
+    bLines.resize(nx * ny);
+    unsigned int pixelIndex = 0;
 
-    pixels.resize(nx * ny);
+    pixelX.resize(nx * ny);
+    pixelY.resize(nx * ny);
     for (int j = ny - 1; j >= 0; --j)
     {
         for (int i = 0; i < nx; ++i)
         {
-            pixels[pixelI] = QPoint(i, j);
-            ++pixelI;
+            pixelX[pixelIndex] = i;
+            pixelY[pixelIndex] = j;
+            ++pixelIndex;
         }
     }
-    amountOfPixels = pixels.size();
+    amountOfPixels = pixelX.size();
     for( int k = 0; k < amountOfThreads; ++k) {
-        std::thread t(&RayTracer::calculate, this);
+        std::thread t(&RayTracerConsole::calculate, this);
         t.detach();
     }
 }
 
-void RayTracer::calculate()
+void RayTracerConsole::calculate()
 {
-    m.lock();
-    int i = index;
-    ++index;
-    m.unlock();
-
+    int i = index.fetch_add(1);
     while( i < amountOfPixels) {
         if(i % 10000 == 0) {
-            //emit updateProgress((100 * i)/amountOfPixels);
+            endTime = std::chrono::system_clock::now();
+            long time = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - lastTime).count();
+            lastTime = endTime;
+            std::cout << (100 * i)/amountOfPixels << "\t" << time << " \n";
         }
 
         ray r;
@@ -194,40 +195,38 @@ void RayTracer::calculate()
 
         for (int s = 0; s < ns; ++s)
         {
-            double u = (pixels[i].x() + drand()) / d_nx;
-            double v = (pixels[i].y() + drand()) / d_ny;
+            double u = (pixelX[i] + drand()) / d_nx;
+            double v = (pixelY[i] + drand()) / d_ny;
             r = cam->get_ray(u, v);
             col += color(r, world, 1);
         }
         col /= d_ns;
         col.sqrt_of_vec3();
-        int ir = int(255.99 * col[0]);
-        int ig = int(255.99 * col[1]);
-        int ib = int(255.99 * col[2]);
-        //rgbLines[i] = QString::number(ir) + " " + QString::number(ig) +" "+ QString::number(ib) + "\n";
-        m.lock();
-        i = index;
-        ++index;
-        m.unlock();
+        rLines[i] = int(255.99 * col[0]);
+        gLines[i] = int(255.99 * col[1]);
+        bLines[i] = int(255.99 * col[2]);
+        i = index.fetch_add(1);
     }
 
     int finished = finishedThreads.fetch_add(1, std::memory_order_relaxed);
     if(finished == amountOfThreads) {
-        //saveFile();
-        qDebug() << "DONE";
-        emit done();
+
+        endTime = std::chrono::system_clock::now();
+        long time = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+        std::cout << "DONE " << time << "\n";
+        saveFile();
+        std::cout << "SAVE FILE \n";
     }
 }
 
-void RayTracer::saveFile()
+void RayTracerConsole::saveFile()
 {
-    qDebug() << "SAVE FILE";
     std::ofstream myfile;
     myfile.open("example.ppm");
     myfile << "P3\n" << nx << " " << ny << "\n255\n";
 
-    for(QString &item : rgbLines) {
-        myfile << item.toStdString();
+    for(int i = 0; i < amountOfPixels; ++i) {
+        myfile << rLines[i] << " " << gLines[i] << " " << bLines[i] << "\n";
     }
     myfile.close();
 }
