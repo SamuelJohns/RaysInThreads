@@ -4,5 +4,5 @@ project(RayTracerConsole)
 
 SET(CMAKE_CXX_FLAGS -pthread)
 
-add_executable(main main_console.cpp raytracerconsole.cpp)
+add_executable(main main_console.cpp raytracerconsole.cpp vec3.cpp)
 

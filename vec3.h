@@ -3,29 +3,28 @@
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
+#include <future>
+
+
 using namespace std;
 
-inline double drand() {
-    return rand() / (RAND_MAX + 1.0);
-}
+double drand();
 
 
 //The following code is the fast inverse square root implementation from Quake III Arena
 inline double q_rsqrt(double number)
 {
-    return sqrt(number);
-    /*
-    uint32_t i;
-    double x2, y;
-    const double threehalfs = 1.5;
-    x2 = number * 0.5;
-    y = number;
-    i = *(long *)&y;
-    i = 0x5f3759df - (i >> 1);
-    y = *(double *)&i;
-    y = y * (threehalfs - (x2 * y * y));
-    return y;
-    */
+    union
+    {
+        int i;
+        float x;
+    } u;
+
+    u.x = number;
+    u.i = (1<<29) + (u.i >> 1) - (1<<22);
+    return u.x;
+
+    //return sqrt(number);
 }
 
 class vec3

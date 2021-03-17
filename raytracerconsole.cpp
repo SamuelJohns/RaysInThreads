@@ -3,6 +3,10 @@
 #include <fstream>
 #include <thread>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include "float.h"
 #include "vec3.h"
 #include "ray.h"
@@ -83,7 +87,7 @@ hitable* dna()
         list[i] = &spheres[i];
     }
 
-    //spheres[0] = sphere(vec3(0.0, -1001.0, 0.0), 1000.0, new lambertian(vec3(0.5, 0.5, 0.5)));
+    spheres[0] = sphere(vec3(0.0, -1001.0, 0.0), 1000.0, new lambertian(vec3(0.5, 0.5, 0.5)));
 
     int i = 0;
 
@@ -125,7 +129,7 @@ vec3 color(const ray &r, hitable  *world,  int depth)
     {
         ray scattered;
         vec3 attenuation;
-        if(depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+        if(depth < 25 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
             return attenuation * color(scattered, world, depth + 1);
         } else {
             return vec3(0.0, 0.0, 0.0);
@@ -181,7 +185,13 @@ void RayTracerConsole::run(int threads)
 
 void RayTracerConsole::calculate()
 {
+    srand(time(NULL));
+
     int i = index.fetch_add(1);
+    ray r;
+    vec3 col(0.0, 0.0, 0.0);
+    double u,v;
+
     while( i < amountOfPixels) {
         if(i % 10000 == 0) {
             endTime = std::chrono::system_clock::now();
@@ -189,14 +199,15 @@ void RayTracerConsole::calculate()
             lastTime = endTime;
             std::cout << (100 * i)/amountOfPixels << "\t" << time << " \n";
         }
-
-        ray r;
-        vec3 col(0.0, 0.0, 0.0);
-
+        col.reset();
         for (int s = 0; s < ns; ++s)
         {
-            double u = (pixelX[i] + drand()) / d_nx;
-            double v = (pixelY[i] + drand()) / d_ny;
+            //u = (pixelX[i] + drand()) / d_nx;
+            //v = (pixelY[i] + drand()) / d_ny;
+
+            u = pixelX[i] / d_nx;
+            v = pixelY[i] / d_ny;
+
             r = cam->get_ray(u, v);
             col += color(r, world, 1);
         }
@@ -230,3 +241,4 @@ void RayTracerConsole::saveFile()
     }
     myfile.close();
 }
+
